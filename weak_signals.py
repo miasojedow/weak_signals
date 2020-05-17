@@ -10,7 +10,7 @@ blocks_size = np.array([4,4,5,5,6,6,7,7,8,8])
 ncol = np.sum(blocks_size)
 
 correlation_within = .9
-correlation_between = .1
+correlation_between = .4
 
 cov_mat = np.ones((ncol,ncol))*correlation_between
 
@@ -28,6 +28,12 @@ rv=multivariate_normal(np.zeros(ncol),cov_mat)
 n=20         
 MW = np.zeros(100)
 ML=  np.zeros(100)
+TPL = np.zeros(100)
+FPL  = np.zeros(100)
+TPW  = np.zeros(100)
+FPW  = np.zeros(100)
+
+
 from tqdm import tqdm
 for j in tqdm(range(100)):
    X=rv.rvs(n)
@@ -41,7 +47,7 @@ for j in tqdm(range(100)):
    signal = 2*(np.log(ncol)/n)**.5
 
 
-   c=.8
+   c=1.5
 
    beta = np.zeros(ncol)
 
@@ -82,3 +88,18 @@ for j in tqdm(range(100)):
    MSE_lasso = (np.matmul(Xtest,beta)-np.matmul(Xtest,beta_lasso))**2
    MW[j] =np.average(MSE_weak)
    ML[j] =np.average(MSE_lasso)
+   block_idx = np.insert(np.cumsum(blocks_size),0,0)  
+   TPW[j] = np.sum([np.sum(beta_weak[block_idx[i]:block_idx[i+1]]!=0)/blocks_size[i] for i in range(Number_of_blocks) if true_block[i]==1 ] )
+   FPW[j] = np.sum([np.sum(beta_weak[block_idx[i]:block_idx[i+1]]!=0)/blocks_size[i] for i in range(Number_of_blocks) if true_block[i]==0 ] )  
+ 
+   TPL[j] = np.sum([np.sum(beta_lasso[block_idx[i]:block_idx[i+1]]!=0)/blocks_size[i] for i in range(Number_of_blocks) if true_block[i]==1 ] )
+   FPL[j] = np.sum([np.sum(beta_lasso[block_idx[i]:block_idx[i+1]]!=0)/blocks_size[i] for i in range(Number_of_blocks) if true_block[i]==0 ] )  
+
+
+
+print("MSE LASSO = "+str(np.average(ML))+"\n"+ 
+"MSE WEAK = "+str(np.average(MW))+"\n"+  
+"POWER LASSO = "+str(np.average(TPL)/np.sum(true_block))+"\n"+
+"POWER WEAK = "+str(np.average(TPW)/np.sum(true_block))+"\n"+
+"FDR LASSO = "+str(np.average(FPL)/(np.average(FPL)+np.average(TPL)))+"\n"+
+"FDR WEAK = "+str(np.average(FPW)/(np.average(FPW)+np.average(TPW)))+"\n")
